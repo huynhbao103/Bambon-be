@@ -8,7 +8,9 @@ const generatedContentSchema = new mongoose.Schema({
   },
   result: {
     type: String,
-    required: true,
+  },
+  note:{
+    type:String
   },
   createdAt: {
     type: Date,
