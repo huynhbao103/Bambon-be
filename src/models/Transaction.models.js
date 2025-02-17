@@ -6,9 +6,9 @@ const TransactionSchema = new mongoose.Schema({
     category: { type: String, required: true },
     items: [
         {
-            productName: { type: String, required: true },
-            quantity: { type: Number, required: true },
-            price: { type: Number, required: true },
+            productName: { type: String },
+            quantity: { type: Number},
+            price: { type: Number },
         }
     ],  
     amount: { type: Number, required: true },
