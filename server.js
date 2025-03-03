@@ -10,7 +10,7 @@ const connectDB = require("./src/config/database");
 // Customer routes
 const authRoutes = require("./src/routes/authRoutes");
 const transactionRoutes = require("./src/routes/transactionRoutes");
-const aiRoutes = require("./src/routes/aiRoutes");
+const budgetRoutes = require("./src/routes/budgetRoutes");
 const ocrRoutes = require("./src/routes/ocrRoutes");
 
 mongoose.set('strictQuery', true); 
@@ -36,7 +36,7 @@ app.use(cors(corsOptions));
 // Customer routes
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionRoutes);
-app.use("/api/convertToJson", aiRoutes);
+app.use("/api/budget", budgetRoutes);
 app.use("/api/ocr", ocrRoutes);
 
 

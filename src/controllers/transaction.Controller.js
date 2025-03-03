@@ -38,4 +38,47 @@ const getTransactions = async (req, res) => {
       res.status(500).json({ error: `Lỗi khi lưu giao dịch: ${error.message}` });
     }
   };
-module.exports = { addTransaction, getTransactions, confirmTransaction};
+
+
+  const updateTransaction = async (req, res) => {
+    try {
+        const { transactionId } = req.params; // Lấy transactionId từ URL
+        const updateData = req.body; // Dữ liệu cần cập nhật từ body
+
+        // Tìm và cập nhật giao dịch
+        const transaction = await Transaction.findByIdAndUpdate(
+            transactionId,
+            updateData,
+            { new: true } // Trả về giao dịch đã cập nhật
+        );
+
+        if (!transaction) {
+            return res.status(404).json({ error: "Không tìm thấy giao dịch." });
+        }
+
+        res.status(200).json(transaction);
+    } catch (error) {
+        console.error("Lỗi khi sửa giao dịch:", error);
+        res.status(500).json({ error: `Lỗi khi sửa giao dịch: ${error.message}` });
+    }
+};
+
+// Xóa giao dịch (mới)
+const deleteTransaction = async (req, res) => {
+    try {
+        const { transactionId } = req.params; // Lấy transactionId từ URL
+
+        // Tìm và xóa giao dịch
+        const transaction = await Transaction.findByIdAndDelete(transactionId);
+
+        if (!transaction) {
+            return res.status(404).json({ error: "Không tìm thấy giao dịch." });
+        }
+
+        res.status(200).json({ message: "Giao dịch đã được xóa thành công." });
+    } catch (error) {
+        console.error("Lỗi khi xóa giao dịch:", error);
+        res.status(500).json({ error: `Lỗi khi xóa giao dịch: ${error.message}` });
+    }
+};
+module.exports = { addTransaction, getTransactions, confirmTransaction,updateTransaction,deleteTransaction};
