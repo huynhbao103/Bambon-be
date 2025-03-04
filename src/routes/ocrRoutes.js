@@ -1,10 +1,9 @@
 const express = require("express");
-const multer = require("multer");
 const router = express.Router();
 const ocrController = require("../controllers/ocrController");
+const { uploadSingle } = require("../Middleware/cloudinary"); // Adjust the path to your Cloudinary config file
 
-const upload = multer({ dest: "uploads/" });
-
-router.post("/", upload.single("image"), ocrController.uploadAndProcessImage);
+// Use Cloudinary upload middleware instead of local disk storage
+router.post("/", uploadSingle, ocrController.uploadAndProcessImage);
 
 module.exports = router;
