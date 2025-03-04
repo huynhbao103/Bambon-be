@@ -1,44 +1,48 @@
-const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const { v2: cloudinary } = require('cloudinary');
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const { v2: cloudinary } = require("cloudinary");
 
-// Cấu hình Cloudinary
+// Configure Cloudinary
 cloudinary.config({
-  cloud_name: 'dnapzxvmr', // Thay bằng cloud_name của bạn
-  api_key: '493981653537236', // Thay bằng API key của bạn
-  api_secret: 'DRf-iDR83p1jRBoMidEITEBjeOQ' // Thay bằng API secret của bạn
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
-// Cấu hình lưu trữ trên Cloudinary
+// Test Cloudinary config
+cloudinary.api.ping((error, result) => {
+  if (error) {
+    console.error("Cloudinary config error:", error);
+  } else {
+    console.log("Cloudinary connected successfully:", result);
+  }
+});
+// Configure Cloudinary storage for Multer
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'ORC-bill', // Thư mục trên Cloudinary
-    allowed_formats: ['jpg', 'png', 'mp4'], // Các định dạng cho phép
-    resource_type: 'auto', // Để có thể tải cả ảnh và video
+    folder: "ORC-bill", // Folder in Cloudinary
+    allowed_formats: ["jpg", "png"], // Restrict to images for OCR
+    resource_type: "image", // Use 'image' since OCR works with images
   },
 });
 
-// Khởi tạo Multer với Cloudinary storage
+// Initialize Multer with Cloudinary storage
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const fileTypes = /jpeg|jpg|png|gif|mp4|avi/;
+    const fileTypes = /jpeg|jpg|png/;
     const extname = fileTypes.test(file.originalname.toLowerCase());
     const mimeType = fileTypes.test(file.mimetype);
 
     if (extname && mimeType) {
       return cb(null, true);
     } else {
-      cb('Error: Invalid file type');
+      cb(new Error("Invalid file type. Only JPEG, JPG, and PNG are allowed."));
     }
-  }
+  },
 });
 
-// Middleware để upload nhiều file (hình ảnh và video)
-const uploadMultiple = upload.fields([
-  { name: 'images', maxCount: 10 },
-  { name: 'videos', maxCount: 5 }
-]);
+// Middleware for single image upload (since OCR typically processes one image)
+const uploadSingle = upload.single("image");
 
-module.exports = { uploadMultiple };
+module.exports = { uploadSingle }; // Export the single upload middleware
