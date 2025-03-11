@@ -25,12 +25,10 @@ const performOCR = async (imageBuffer) => {
   try {
     const { data: { text } } = await Tesseract.recognize(imageBuffer, "vie+eng", {
       logger: (m) => console.log(m),
-      corePath: "https://unpkg.com/tesseract.js-core@5.1.0/tesseract-core-simd.wasm",
-      corePath: path.resolve(__dirname, "../../public/tesseract/worker.min.js"),
       langPath: "https://tessdata.projectnaptha.com/4.0.0",
       config: {
         tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        psm: Tesseract.PSM.SINGLE_BLOCK,
+        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
       },
     });
     return text.replace(/\n/g, " ");
