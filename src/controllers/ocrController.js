@@ -21,6 +21,9 @@ const processImage = async (imageBuffer) => {
 const performOCR = async (imageBuffer) => {
   const { data: { text } } = await Tesseract.recognize(imageBuffer, "vie+eng", {
     logger: (m) => console.log(m),
+    corePath: "https://unpkg.com/tesseract.js-core@5.1.0/tesseract-core-simd.wasm",
+    workerPath: "https://unpkg.com/tesseract.js@5.1.0/dist/worker.min.js",
+    langPath: "https://tessdata.projectnaptha.com/4.0.0",
     config: {
       tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
       psm: Tesseract.PSM.SINGLE_BLOCK,
