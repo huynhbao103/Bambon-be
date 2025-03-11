@@ -2,13 +2,16 @@ const Tesseract = require("tesseract.js");
 const sharp = require("sharp");
 const Transaction = require("../models/Transaction.models");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fetch = require("node-fetch"); // Add this dependency
+const fetch = require("node-fetch");
+const path = require("path");
+// const worder = require("../../public/tesseract/worker.min.js");
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 const processImage = async (imageBuffer) => {
   try {
     const processedImageBuffer = await sharp(imageBuffer)
+      .resize({ width: 800 }) // Giảm độ phân giải để tối ưu
       .grayscale()
       .normalize()
       .toBuffer();
@@ -19,17 +22,20 @@ const processImage = async (imageBuffer) => {
 };
 
 const performOCR = async (imageBuffer) => {
-  const { data: { text } } = await Tesseract.recognize(imageBuffer, "vie+eng", {
-    logger: (m) => console.log(m),
-    corePath: "https://unpkg.com/tesseract.js-core@5.1.0/tesseract-core-simd.wasm",
-    workerPath: "https://unpkg.com/tesseract.js@5.1.0/dist/worker.min.js",
-    langPath: "https://tessdata.projectnaptha.com/4.0.0",
-    config: {
-      tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-      psm: Tesseract.PSM.SINGLE_BLOCK,
-    },
-  });
-  return text.replace(/\n/g, " ");
+  try {
+    const { data: { text } } = await Tesseract.recognize(imageBuffer, "vie+eng", {
+      logger: (m) => console.log(m),
+      corePath: "https://unpkg.com/tesseract.js-core@5.1.0/tesseract-core-simd.wasm",
+      langPath: "https://tessdata.projectnaptha.com/4.0.0",
+      config: {
+        tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        psm: Tesseract.PSM.SINGLE_BLOCK,
+      },
+    });
+    return text.replace(/\n/g, " ");
+  } catch (error) {
+    throw new Error(`OCR failed: ${error.message}`);
+  }
 };
 
 const generateTransactionJSON = async (text) => {
@@ -66,31 +72,44 @@ exports.uploadAndProcessImage = async (req, res) => {
   }
 
   try {
-    // Log Cloudinary result
-    console.log("Cloudinary file:", req.file);
+    console.log("Step 1 - Cloudinary file:", req.file);
+    const startTime = Date.now();
 
     // Fetch image from Cloudinary URL
-    const imageUrl = req.file.path; // This is the Cloudinary URL
+    const imageUrl = req.file.path;
+    console.log("Step 2 - Fetching image from:", imageUrl);
+    const fetchStart = Date.now();
     const response = await fetch(imageUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch image from Cloudinary: ${response.statusText}`);
     }
-    const imageBuffer = await response.buffer(); // Get raw image data as buffer
+    const imageBuffer = await response.buffer();
+    console.log(`Step 3 - Fetch time: ${Date.now() - fetchStart}ms, Buffer size: ${imageBuffer.length}`);
 
     // Process the image
+    console.log("Step 4 - Processing image with sharp");
+    const sharpStart = Date.now();
     const processedImageBuffer = await processImage(imageBuffer);
+    console.log(`Step 5 - Sharp time: ${Date.now() - sharpStart}ms`);
+
+    // Perform OCR
+    console.log("Step 6 - Starting OCR");
+    const ocrStart = Date.now();
     const text = await performOCR(processedImageBuffer);
-    console.log("OCR result:", text);
+    console.log(`Step 7 - OCR time: ${Date.now() - ocrStart}ms, Result: ${text}`);
 
     // Generate transaction JSON
+    console.log("Step 8 - Generating JSON with AI");
+    const aiStart = Date.now();
     const resultText = await generateTransactionJSON(text);
-    console.log("Raw JSON từ AI:", resultText);
+    console.log(`Step 9 - AI time: ${Date.now() - aiStart}ms, Raw JSON: ${resultText}`);
 
     let transactionData;
     try {
       transactionData = JSON.parse(resultText);
+      console.log("Step 10 - Parsed transaction data:", transactionData);
     } catch (error) {
-      console.error("Chuỗi JSON lỗi:", resultText);
+      console.error("Step 10 - JSON parse error:", error.message);
       return res.status(500).json({ error: `Lỗi phân tích JSON: ${error.message}` });
     }
 
@@ -103,16 +122,21 @@ exports.uploadAndProcessImage = async (req, res) => {
       return res.status(400).json({ error: "Thiếu userId trong request." });
     }
 
+    // Save to database
+    console.log("Step 11 - Saving transaction to DB");
+    const dbStart = Date.now();
     const newTransaction = new Transaction(transactionData);
     await newTransaction.save();
+    console.log(`Step 12 - DB time: ${Date.now() - dbStart}ms`);
 
+    console.log(`Total time: ${Date.now() - startTime}ms`);
     res.status(200).json({
       message: "Dữ liệu giao dịch đã được lưu thành công!",
       data: transactionData,
       imageUrl: imageUrl,
     });
   } catch (error) {
-    console.error("Lỗi xử lý:", error);
+    console.error("Lỗi xử lý:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
