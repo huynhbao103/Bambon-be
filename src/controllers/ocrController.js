@@ -1,9 +1,9 @@
-const Tesseract = require("tesseract.js");
 const sharp = require("sharp");
 const Transaction = require("../models/Transaction.models");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fetch = require("node-fetch");
 const path = require("path");
+const Tesseract = require("tesseract.js");
 // const worder = require("../../public/tesseract/worker.min.js");
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
@@ -21,16 +21,30 @@ const processImage = async (imageBuffer) => {
   }
 };
 
+
+
 const performOCR = async (imageBuffer) => {
   try {
-    const { data: { text } } = await Tesseract.recognize(imageBuffer, "vie+eng", {
-      logger: (m) => console.log(m),
+    // Tạo worker với corePath từ CDN
+    const worker = await Tesseract.createWorker({
+      corePath: "https://unpkg.com/tesseract.js-core@5.1.0/tesseract-core-simd.wasm",
       langPath: "https://tessdata.projectnaptha.com/4.0.0",
-      config: {
-        tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
-      },
+      logger: (m) => console.log(m),
     });
+
+    // Khởi tạo worker
+    await worker.load();
+    await worker.loadLanguage("vie+eng");
+    await worker.initialize("vie+eng");
+    await worker.setParameters({
+      tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+    });
+
+    // Thực hiện OCR
+    const { data: { text } } = await worker.recognize(imageBuffer);
+    await worker.terminate(); // Giải phóng tài nguyên
+
     return text.replace(/\n/g, " ");
   } catch (error) {
     throw new Error(`OCR failed: ${error.message}`);
