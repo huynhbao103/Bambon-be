@@ -7,7 +7,7 @@ const TransactionSchema = new mongoose.Schema({
     items: [
         {
             productName: { type: String },
-            quantity: { type: Number},
+            quantity: { type: Number, min: 0, get: v => parseFloat(v.toFixed(4)) },
             price: { type: Number },
         }
     ],  

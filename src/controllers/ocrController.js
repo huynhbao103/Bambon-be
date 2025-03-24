@@ -11,9 +11,14 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const processImage = async (imageBuffer) => {
   try {
     const processedImageBuffer = await sharp(imageBuffer)
-      .resize({ width: 800 }) // Giảm độ phân giải để tối ưu
-      .grayscale()
-      .normalize()
+      .resize({ width: 1200 }) // Increased resolution for better detail
+      .gamma(1.2) // Adjust gamma for better contrast
+      .normalize() // Normalize the image
+      .sharpen({ // Enhanced sharpening
+        sigma: 1.5,
+        m1: 0.5,
+        m2: 0.5
+      })
       .toBuffer();
     return processedImageBuffer;
   } catch (error) {
@@ -27,19 +32,32 @@ const performOCR = async (imageBuffer) => {
       logger: (m) => console.log(m),
       corePath: path.resolve(__dirname, "../public/tesseract/tesseract-core-simd.wasm"),
       langPath: path.resolve(__dirname, "../public/tesseract"),
-
       config: {
-        psm: Tesseract.PSM.SINGLE_BLOCK,
+        psm: Tesseract.PSM.AUTO, // Changed to AUTO for better layout analysis
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,฿$₫-_()/@&%", // Added more special characters
+        tessedit_pageseg_mode: "1", // Automatic page segmentation with OSD
+        tessedit_ocr_engine_mode: "3", // Use Legacy + LSTM engines
+        preserve_interword_spaces: "1",
+        language_model_penalty_non_dict_word: "0.5",
+        language_model_penalty_non_freq_dict_word: "0.5"
       },
     });
-    return text.replace(/\n/g, " ");
+
+    // Enhanced text cleaning
+    let cleanedText = text
+      .replace(/\n/g, " ")
+      .replace(/\s+/g, " ") // Remove multiple spaces
+      .replace(/[^\x00-\x7F\u0E00-\u0E7F\u0102\u0103\u0110\u0111\u0128\u0129\u0168\u0169\u01A0\u01A1\u01AF\u01B0\u1EA0-\u1EF9฿]/g, "") // Keep Thai, Vietnamese chars
+      .trim();
+    
+    return cleanedText;
   } catch (error) {
     throw new Error(`OCR failed: ${error.message}`);
   }
 };
 
 const generateTransactionJSON = async (text) => {
-  const prompt = `sử dụng tiếng việt.
+  const prompt = `
   Chuyển đổi đoạn văn bản sau thành định dạng JSON hợp lệ cho giao dịch tài chính:
   "${text}"
   Yêu cầu JSON chỉ gồm:
@@ -49,9 +67,15 @@ const generateTransactionJSON = async (text) => {
     items: [{ productName: String, quantity: Number, price: Number }],
     amount: Number
   }.
+  Lưu ý đặc biệt:
+  - Nếu phát hiện đơn vị tiền tệ là THB (Thai Baht), hãy chuyển đổi sang VND với tỷ giá: 1 THB = 750 VND
+  - Tự động nhận diện và chuyển đổi tiền tệ từ THB sang VND cho cả amount và price trong items
   Tự chọn "category" phù hợp với giao dịch.
   Chỉ trả về JSON, không thêm bất kỳ bình luận hay nội dung nào khác.
-  Tính toán amount.
+  Nếu không có danh mục (category) phù hợp, đặt category là "Khác".
+  nếu tiền tệ và chữ không phải là việt nam  thì chuyển đổi sang mệnh giá tiềntiền việt và chuyển ngôn ngữ tiếng việt.
+  Nếu không có số tiền (amount) trong văn bản, tính toán amount từ danh sách items,Tính toán amount chuẩn từng số. 
+  Nếu không có danh sách items, đặt items là rỗng [].
   Nếu giá (price) không có trong văn bản, đặt giá là 0.
   Nếu không phân tích được, trả về { "note": "Lỗi phân tích hóa đơn." }.
   `;
