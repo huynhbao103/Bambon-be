@@ -68,10 +68,8 @@ const generateTransactionJSON = async (text) => {
     amount: Number
   }.
   Lưu ý đặc biệt:
-   - bill Baht thái là B3700 mà nó lỡ nhận dạng là 83700 thì nó sẽ tự động nhận diện là 37000 Baht
+  nhận diện tiền tệ:
   - Nếu phát hiện đơn vị tiền tệ là THB (Thai Baht), hãy chuyển đổi sang VND với tỷ giá: 1 THB = 750 VND
-  -nếu mà tiếng thái mà scan sai thì hãy tự động nhận diện và chuyển đổi sang tiếng việt.
-  - Nếu phát hiện số tiền (amount) là USD, hãy chuyển đổi sang VND với tỷ giá: 1 USD = 23000 VND
   - Tự động nhận diện và chuyển đổi tiền tệ từ THB sang VND cho cả amount và price trong items
   Tự chọn "category" phù hợp với giao dịch.
   Chỉ trả về JSON, không thêm bất kỳ bình luận hay nội dung nào khác.
