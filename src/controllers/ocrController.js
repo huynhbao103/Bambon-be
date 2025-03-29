@@ -69,13 +69,16 @@ const generateTransactionJSON = async (text) => {
   }.
   Lưu ý đặc biệt:
   nhận diện tiền tệ:
-  - Nếu phát hiện đơn vị tiền tệ là THB (Thai Baht), hãy chuyển đổi sang VND với tỷ giá: 1 THB = 750 VND
+  - Nếu phát hiện đơn vị ngoaị tệ , hãy chuyển đổi sang VND với tỷ giá hối đoái hiện tại.
+  - Nếu phát hiện đơn vị tiền tệ là VND, hãy giữ nguyên.
+  - Nếu phát hiện đơn vị tiền tệ là THB, hãy chuyển đổi sang VND với tỷ giá hối đoái hiện tại.
   - Tự động nhận diện và chuyển đổi tiền tệ từ THB sang VND cho cả amount và price trong items
   Tự chọn "category" phù hợp với giao dịch.
   Chỉ trả về JSON, không thêm bất kỳ bình luận hay nội dung nào khác.
   Nếu không có danh mục (category) phù hợp, đặt category là "Khác".
   nếu tiền tệ và chữ không phải là việt nam  thì chuyển đổi sang mệnh giá tiềntiền việt và chuyển ngôn ngữ tiếng việt.
   Nếu không có số tiền (amount) trong văn bản, tính toán amount từ danh sách items,Tính toán amount chuẩn từng số. 
+  nếu có tổng tiền trong văn bản thì lấy tổng tiền trong văn bản.
   Nếu không có danh sách items, đặt items là rỗng [].
   Nếu giá (price) không có trong văn bản, đặt giá là 0.
   Nếu không phân tích được, trả về { "note": "Lỗi phân tích hóa đơn." }.
